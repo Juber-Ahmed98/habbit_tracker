@@ -1,36 +1,85 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Habit Tracker
 
-## Getting Started
+A personal habit tracker PWA across five domains: Dashboard, Fitness, Work, Deen, Lifestyle.
+Source-of-truth spec: `habit-tracker-spec.md` (local; not in repo).
 
-First, run the development server:
+## Status
+
+**Step 1 of [§13 build order]: shell only.**
+
+- Next.js 16 + React 19 + TypeScript strict
+- Tailwind v4 (CSS-first theme config)
+- Theme tokens (spec §4) wired as CSS variables — light + dark, manual override via `data-theme`
+- Bottom-tab shell with five empty tabs (`/dashboard`, `/fitness`, `/work`, `/deen`, `/lifestyle`)
+- Settings + onboarding stubs
+- PWA: manifest + Serwist service worker, installable on Android Chrome
+
+Habit data, streaks, Garmin integrations, notifications, etc. all come in later steps.
+
+## Local development
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm install
+pnpm dev          # http://localhost:3000 (turbopack)
+pnpm build        # production build via webpack (see "Webpack vs Turbopack" below)
+pnpm start        # serve the build
+pnpm icons        # regenerate placeholder PWA icons
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The service worker is **disabled in dev** (`next.config.ts`) so HMR doesn't fight the cache. To test PWA install behavior, run `pnpm build && pnpm start` and visit on Android.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Installing as a PWA on the Galaxy S24 Ultra
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. Open the deployed URL in **Chrome** (not Samsung Internet — fewer caveats).
+2. Tap the address bar menu → **Install app** (or wait for the install banner).
+3. The app launches in standalone mode, respects the punch-hole via `viewport-fit=cover`, and uses the maskable icon on the home screen.
+4. Themed icons (Android 13+ "Themed icons" setting) pick up the monochrome variant automatically.
 
-## Learn More
+## Deploying to Netlify
 
-To learn more about Next.js, take a look at the following resources:
+1. Push this repo to GitHub.
+2. In Netlify: **Add new site → Import an existing project**, pick the repo.
+3. Build settings are read from `netlify.toml` — no manual config needed.
+4. Wait for the first deploy, then install the PWA from the Netlify URL.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Environment variables (Strava, Supabase, Garmin) go in **Site settings → Environment variables** when those integrations land in later steps.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Webpack vs Turbopack
 
-## Deploy on Vercel
+Next 16 uses Turbopack by default. Serwist 9.x doesn't yet produce a working SW under Turbopack production builds ([serwist#54](https://github.com/serwist/serwist/issues/54)), so `pnpm build` passes `--webpack` explicitly. `pnpm dev` stays on Turbopack since the SW is disabled in dev anyway. Once Serwist + Turbopack ships, drop the flag.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Theme
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Defined in `app/globals.css`. Both palettes from spec §4 are sourced from CSS variables; Tailwind utility classes (`bg-bg`, `text-text-muted`, `border-border`, `bg-accent`, etc.) map via `@theme inline`. Switch modes manually via:
+
+```js
+document.documentElement.dataset.theme = 'dark'; // or 'light', or remove to follow system
+localStorage.setItem('theme', 'dark');
+```
+
+The inline bootstrap script in `app/layout.tsx` applies a persisted theme before paint to avoid the flash-of-wrong-mode.
+
+## Project layout
+
+```
+app/
+  (tabs)/                # route group with the bottom-nav layout
+    layout.tsx           # bottom nav + safe-area-aware main scroll area
+    BottomNav.tsx        # five-tab client component
+    dashboard/page.tsx
+    fitness/page.tsx
+    work/page.tsx
+    deen/page.tsx
+    lifestyle/page.tsx
+  settings/page.tsx
+  onboarding/page.tsx
+  layout.tsx             # root: viewport + theme bootstrap + SW registration
+  globals.css            # theme tokens + Tailwind
+  sw.ts                  # service worker source (built by Serwist)
+  sw-register.tsx        # client-side SW registration
+public/
+  manifest.json
+  icons/                 # placeholder PWA icons (regenerate with `pnpm icons`)
+scripts/
+  generate-icons.mjs
+```

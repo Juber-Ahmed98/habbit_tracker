@@ -1,0 +1,26 @@
+[build]
+  command = "pnpm build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "20"
+  PNPM_VERSION = "9"
+  # Serwist + Turbopack production build is still unstable (see next.config.ts);
+  # the `build` script passes --webpack explicitly. Nothing extra needed here.
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+# Service worker must be served from the site root with no caching so updates
+# propagate immediately to installed PWAs.
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+    Service-Worker-Allowed = "/"
+
+# Manifest changes also need to bypass the browser cache during early dev.
+[[headers]]
+  for = "/manifest.json"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
