@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import SWRegister from "./sw-register";
 
 export const metadata: Metadata = {
   title: "Habit Tracker",
@@ -45,7 +46,10 @@ export default function RootLayout({
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeBootstrap }} />
       </head>
-      <body className="min-h-full bg-bg text-text">{children}</body>
+      <body className="min-h-full bg-bg text-text">
+        {children}
+        <SWRegister />
+      </body>
     </html>
   );
 }
