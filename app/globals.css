@@ -80,6 +80,21 @@ body {
   overscroll-behavior-y: contain;
 }
 
+/* Streak flame slow pulse — §4: 1.0 → 1.08 → 1.0 over 2s. */
+@keyframes habit-flame-pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.08);
+  }
+}
+
+.habit-flame {
+  animation: habit-flame-pulse 2s ease-in-out infinite;
+  transform-origin: center;
+}
+
 /* Honor reduced-motion globally — per spec §12. */
 @media (prefers-reduced-motion: reduce) {
   *,
@@ -88,5 +103,8 @@ body {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+  .habit-flame {
+    animation: none;
   }
 }
