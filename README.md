@@ -35,14 +35,14 @@ The service worker is **disabled in dev** (`next.config.ts`) so HMR doesn't figh
 3. The app launches in standalone mode, respects the punch-hole via `viewport-fit=cover`, and uses the maskable icon on the home screen.
 4. Themed icons (Android 13+ "Themed icons" setting) pick up the monochrome variant automatically.
 
-## Deploying to Netlify
+## Deploying to Vercel
 
 1. Push this repo to GitHub.
-2. In Netlify: **Add new site → Import an existing project**, pick the repo.
-3. Build settings are read from `netlify.toml` — no manual config needed.
-4. Wait for the first deploy, then install the PWA from the Netlify URL.
+2. In Vercel: **Add New Project → Import Git Repository**, pick the repo.
+3. Vercel auto-detects Next.js — no build settings to change. `vercel.json` handles the no-cache headers for `/sw.js` and `/manifest.json`.
+4. Wait for the first deploy, then install the PWA from the Vercel URL.
 
-Environment variables (Strava, Supabase, Garmin) go in **Site settings → Environment variables** when those integrations land in later steps.
+Environment variables (Strava, Supabase, Garmin) go in **Project Settings → Environment Variables** when those integrations land in later steps.
 
 ## Webpack vs Turbopack
 
