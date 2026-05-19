@@ -40,6 +40,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# nested clone that keeps reappearing (GitHub Desktop artifact)
+habbit_tracker/
+
 # service worker output (built from app/sw.ts by serwist)
 /public/sw.js
 /public/sw.js.map
