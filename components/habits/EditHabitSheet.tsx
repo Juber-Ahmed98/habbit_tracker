@@ -3,12 +3,13 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useLiveQuery } from "dexie-react-hooks";
 import { AnimatePresence, motion } from "framer-motion";
-import { Trash2, X } from "lucide-react";
+import { Flame, Snowflake, Trash2, X } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { getDb } from "@/lib/db";
 import { type Habit } from "@/lib/db/schema";
+import { useFreezeStatus } from "@/lib/streaks/freeze";
 import { useHabitsStore } from "@/lib/stores/habits";
 
 const editSchema = z.object({
@@ -53,7 +54,7 @@ export function EditHabitSheet() {
             role="dialog"
             aria-modal="true"
             aria-label="Edit habit"
-            className="relative w-full max-w-md"
+            className="relative w-full max-w-md max-h-[85dvh] overflow-y-auto"
             style={{
               backgroundColor: "var(--surface)",
               color: "var(--text)",
@@ -186,15 +187,8 @@ function EditHabitForm({
         </p>
       </div>
 
-      <div
-        className="rounded-xl px-3 py-2 text-xs"
-        style={{
-          backgroundColor: "var(--surface-alt)",
-          color: "var(--text-muted)",
-        }}
-      >
-        Streak history view comes in Step 4.
-      </div>
+      <FreezeDaySection habitId={habit.id} />
+      <StreakSummary habitId={habit.id} />
 
       <div className="flex items-center justify-between pt-2">
         {!confirmingDelete ? (
@@ -243,5 +237,135 @@ function EditHabitForm({
         </button>
       </div>
     </form>
+  );
+}
+
+// One-per-week freeze toggle. Stays mounted while the sheet is open so
+// the live status (`used`, `todayIsFreeze`) reflects writes immediately.
+function FreezeDaySection({ habitId }: { habitId: string }) {
+  const status = useFreezeStatus(habitId);
+  const applyFreezeDay = useHabitsStore((s) => s.applyFreezeDay);
+  const removeFreezeDay = useHabitsStore((s) => s.removeFreezeDay);
+
+  if (!status) return null;
+
+  let body: React.ReactNode;
+  if (status.todayIsFreeze) {
+    body = (
+      <button
+        type="button"
+        onClick={() => void removeFreezeDay(habitId)}
+        className="w-full rounded-xl px-3 py-2 text-sm font-semibold"
+        style={{
+          backgroundColor: "var(--surface)",
+          border: "1px solid var(--border)",
+          color: "var(--text)",
+        }}
+      >
+        Undo freeze for today
+      </button>
+    );
+  } else if (status.used) {
+    body = (
+      <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+        Freeze already used this week on {status.usedDate}.
+      </p>
+    );
+  } else if (status.todayCompleted) {
+    body = (
+      <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+        Already ticked today — no freeze needed.
+      </p>
+    );
+  } else {
+    body = (
+      <button
+        type="button"
+        onClick={() => void applyFreezeDay(habitId)}
+        className="w-full rounded-xl px-3 py-2 text-sm font-semibold"
+        style={{
+          backgroundColor: "var(--accent)",
+          color: "var(--accent-ink)",
+        }}
+      >
+        Use today&apos;s freeze
+      </button>
+    );
+  }
+
+  return (
+    <div
+      className="rounded-xl px-3 py-3"
+      style={{
+        backgroundColor: "var(--surface-alt)",
+        border: "1px solid var(--border)",
+      }}
+    >
+      <div className="mb-2 flex items-center gap-2">
+        <Snowflake size={16} aria-hidden style={{ color: "var(--text)" }} />
+        <span className="text-sm font-medium">Freeze day</span>
+        <span
+          className="ml-auto text-[11px]"
+          style={{ color: "var(--text-muted)" }}
+        >
+          1 per week
+        </span>
+      </div>
+      {body}
+    </div>
+  );
+}
+
+// Mini summary: current + longest + last completed. Replaces the Step 2
+// "Streak history view comes in Step 4" placeholder. Full heatmap lives
+// on the /insights route.
+function StreakSummary({ habitId }: { habitId: string }) {
+  const snapshot = useLiveQuery(
+    () => getDb().streakSnapshots.get(habitId),
+    [habitId],
+  );
+
+  const current = snapshot?.current ?? 0;
+  const longest = snapshot?.longest ?? 0;
+  const last = snapshot?.lastCompletedDate ?? "—";
+
+  return (
+    <div
+      className="rounded-xl px-3 py-3"
+      style={{
+        backgroundColor: "var(--surface-alt)",
+        border: "1px solid var(--border)",
+      }}
+    >
+      <div className="mb-2 flex items-center gap-2">
+        <Flame
+          size={16}
+          aria-hidden
+          style={{ color: "var(--streak)" }}
+          fill={current >= 7 ? "var(--streak)" : "none"}
+        />
+        <span className="text-sm font-medium">Streak</span>
+      </div>
+      <div className="grid grid-cols-3 gap-2 text-center">
+        <div>
+          <p className="text-2xl font-semibold leading-none">{current}</p>
+          <p className="text-[11px]" style={{ color: "var(--text-muted)" }}>
+            Current
+          </p>
+        </div>
+        <div>
+          <p className="text-2xl font-semibold leading-none">{longest}</p>
+          <p className="text-[11px]" style={{ color: "var(--text-muted)" }}>
+            Longest
+          </p>
+        </div>
+        <div>
+          <p className="text-base font-semibold leading-tight">{last}</p>
+          <p className="text-[11px]" style={{ color: "var(--text-muted)" }}>
+            Last
+          </p>
+        </div>
+      </div>
+    </div>
   );
 }
