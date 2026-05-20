@@ -1,9 +1,11 @@
 "use client";
 
+import { addDays, startOfWeek } from "date-fns";
 import { create } from "zustand";
 import { getDb } from "../db";
 import { type Habit, type HabitTab, type HabitType } from "../db/schema";
 import { computeStreak } from "../streaks/compute";
+import { useSettingsStore } from "./settings";
 import { toLocalDateString } from "../utils/date";
 
 export type CreateHabitInput = {
@@ -18,29 +20,53 @@ export type CreateHabitInput = {
   scheduleTime?: string;
 };
 
+export type FreezeApplyResult =
+  | "applied"
+  | "already-completed"
+  | "already-frozen-this-week";
+
 type HabitsStore = {
   // Transient UI state — the habit being edited via the long-press sheet.
   editingHabitId: string | null;
   setEditingHabitId: (id: string | null) => void;
 
-  // Commands. All writes funnel through here so future Step 4 streak
-  // recompute / Step 5 notification re-registration can hook in one place.
+  // Commands. All writes funnel through here so future Step 5 notification
+  // re-registration can hook in one place.
   createHabit: (input: CreateHabitInput) => Promise<string>;
   updateHabit: (id: string, patch: Partial<Habit>) => Promise<void>;
   deleteHabit: (id: string) => Promise<void>;
   tickHabit: (habitId: string, date?: string) => Promise<void>;
   untickHabit: (habitId: string, date?: string) => Promise<void>;
   toggleHabit: (habitId: string, date?: string) => Promise<boolean>;
+  applyFreezeDay: (habitId: string) => Promise<FreezeApplyResult>;
+  removeFreezeDay: (habitId: string) => Promise<void>;
 };
 
+// Recompute snapshot. Now needs the Habit row so the §7 logic can see
+// schedule.days — older callers passed just the id.
 async function refreshStreak(habitId: string) {
   const db = getDb();
+  const habit = await db.habits.get(habitId);
+  if (!habit) return;
   const completions = await db.completions
     .where("habitId")
     .equals(habitId)
     .toArray();
-  const snapshot = computeStreak(habitId, completions);
+  const snapshot = computeStreak(habit, completions);
   await db.streakSnapshots.put(snapshot);
+}
+
+// Calendar week boundary used by the freeze-per-week rule. Follows
+// Settings.startOfWeek so this matches whatever the WeekStrip displays.
+function currentWeekRange(): { startStr: string; endStr: string } {
+  const startOn = useSettingsStore.getState().settings.startOfWeek;
+  const now = new Date();
+  const start = startOfWeek(now, { weekStartsOn: startOn });
+  const end = addDays(start, 6);
+  return {
+    startStr: toLocalDateString(start),
+    endStr: toLocalDateString(end),
+  };
 }
 
 export const useHabitsStore = create<HabitsStore>((set) => ({
@@ -79,6 +105,10 @@ export const useHabitsStore = create<HabitsStore>((set) => ({
   async updateHabit(id, patch) {
     const db = getDb();
     await db.habits.update(id, patch);
+    // Schedule changes alter what counts as "scheduled" — recompute snapshot.
+    if (patch.schedule) {
+      await refreshStreak(id);
+    }
   },
 
   async deleteHabit(id) {
@@ -145,5 +175,58 @@ export const useHabitsStore = create<HabitsStore>((set) => ({
     });
     await refreshStreak(habitId);
     return true;
+  },
+
+  async applyFreezeDay(habitId) {
+    const db = getDb();
+    const todayStr = toLocalDateString();
+    const { startStr, endStr } = currentWeekRange();
+
+    // Check today first — no point spending a freeze on an already-done day.
+    const todayCompletion = await db.completions
+      .where("[habitId+date]")
+      .equals([habitId, todayStr])
+      .first();
+    if (todayCompletion) {
+      return "already-completed";
+    }
+
+    // Has any freeze been used in this calendar week already?
+    const weekCompletions = await db.completions
+      .where("habitId")
+      .equals(habitId)
+      .filter(
+        (c) =>
+          c.source === "freeze" && c.date >= startStr && c.date <= endStr,
+      )
+      .toArray();
+    if (weekCompletions.length > 0) {
+      return "already-frozen-this-week";
+    }
+
+    await db.completions.put({
+      id: crypto.randomUUID(),
+      habitId,
+      date: todayStr,
+      completedAt: Date.now(),
+      source: "freeze",
+    });
+    await refreshStreak(habitId);
+    return "applied";
+  },
+
+  async removeFreezeDay(habitId) {
+    const db = getDb();
+    const todayStr = toLocalDateString();
+    const existing = await db.completions
+      .where("[habitId+date]")
+      .equals([habitId, todayStr])
+      .first();
+    // Only remove if it's actually a freeze — don't accidentally un-do a
+    // manual tick from this code path.
+    if (existing && existing.source === "freeze") {
+      await db.completions.delete(existing.id);
+      await refreshStreak(habitId);
+    }
   },
 }));
