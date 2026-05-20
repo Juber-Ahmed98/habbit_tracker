@@ -1,7 +1,8 @@
 "use client";
 
 import { useLiveQuery } from "dexie-react-hooks";
-import { Plus } from "lucide-react";
+import { Plus, Settings as SettingsIcon } from "lucide-react";
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { CreateHabitDialog } from "@/components/habits/CreateHabitDialog";
 import { DayDetailModal } from "@/components/dashboard/DayDetailModal";
@@ -61,18 +62,32 @@ export default function DashboardPage() {
             Today at a glance.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => setDialogOpen(true)}
-          aria-label="Add habit"
-          className="inline-flex items-center gap-1 rounded-xl px-3 py-2 text-sm font-semibold"
-          style={{
-            backgroundColor: "var(--accent)",
-            color: "var(--accent-ink)",
-          }}
-        >
-          <Plus size={16} /> Add
-        </button>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/settings"
+            aria-label="Open settings"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-xl"
+            style={{
+              backgroundColor: "var(--surface)",
+              border: "1px solid var(--border)",
+              color: "var(--text-muted)",
+            }}
+          >
+            <SettingsIcon size={16} aria-hidden />
+          </Link>
+          <button
+            type="button"
+            onClick={() => setDialogOpen(true)}
+            aria-label="Add habit"
+            className="inline-flex items-center gap-1 rounded-xl px-3 py-2 text-sm font-semibold"
+            style={{
+              backgroundColor: "var(--accent)",
+              color: "var(--accent-ink)",
+            }}
+          >
+            <Plus size={16} /> Add
+          </button>
+        </div>
       </header>
 
       <WeekStrip onSelectDay={(info) => setSelectedDate(info.dateStr)} />
