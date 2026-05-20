@@ -2,6 +2,7 @@
 
 import { useLiveQuery } from "dexie-react-hooks";
 import { addDays, startOfWeek } from "date-fns";
+import Link from "next/link";
 import { useMemo } from "react";
 import { getDb } from "@/lib/db";
 import { useSettingsStore } from "@/lib/stores/settings";
@@ -111,8 +112,9 @@ export function InsightsStrip() {
     <div className="-mx-4 overflow-x-auto px-4 [scrollbar-width:none]">
       <div className="flex gap-2" style={{ minWidth: "min-content" }}>
         {cards.map((c) => (
-          <div
+          <Link
             key={c.key}
+            href="/insights"
             className="flex min-w-[140px] flex-col gap-0.5 rounded-card px-3 py-2.5"
             style={{
               backgroundColor: "var(--surface)",
@@ -136,7 +138,7 @@ export function InsightsStrip() {
                 {c.hint}
               </span>
             ) : null}
-          </div>
+          </Link>
         ))}
       </div>
     </div>
