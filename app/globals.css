@@ -80,6 +80,39 @@ body {
   overscroll-behavior-y: contain;
 }
 
+/*
+ * Deen tab card parchment overlay — §5.4: 4% opacity, light mode only.
+ * Implemented as a warm tint layered via ::after so it sits above the
+ * surface but beneath the card content. Dark mode gets nothing.
+ */
+.deen-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      circle at 20% 15%,
+      rgba(196, 165, 116, 0.08) 0%,
+      transparent 60%
+    ),
+    radial-gradient(
+      circle at 80% 85%,
+      rgba(196, 165, 116, 0.06) 0%,
+      transparent 55%
+    );
+  opacity: 0.5; /* combined ~4% effective */
+  border-radius: inherit;
+}
+:root[data-theme="dark"] .deen-card::after {
+  display: none;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) .deen-card::after {
+    display: none;
+  }
+}
+
 /* Streak flame slow pulse — §4: 1.0 → 1.08 → 1.0 over 2s. */
 @keyframes habit-flame-pulse {
   0%, 100% {
