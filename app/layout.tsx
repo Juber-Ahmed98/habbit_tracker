@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { AppHydrator } from "@/components/AppHydrator";
+import { OnboardingGate } from "@/components/OnboardingGate";
 import SWRegister from "./sw-register";
 
 export const metadata: Metadata = {
@@ -49,6 +50,7 @@ export default function RootLayout({
       </head>
       <body className="min-h-full bg-bg text-text">
         <AppHydrator />
+        <OnboardingGate />
         {children}
         <SWRegister />
       </body>
