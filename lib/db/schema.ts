@@ -1,6 +1,6 @@
 // Domain types — sourced from habit-tracker-spec.md §6.
-// Settings is extended (vs §6) with `hydrationMinimumMl` to support
-// the "minimum 2000ml, ideal 2500ml" goal model agreed in Step 2.
+// Settings is extended (vs §6) with `hydrationMinimumMl` (Step 2) and
+// `catalogueSeeded` (Step 3, marks the one-time structural habit seed).
 
 export type HabitTab = "fitness" | "work" | "deen" | "lifestyle";
 export type HabitType = "toggle" | "counter" | "timer" | "duration";
@@ -62,6 +62,7 @@ export type Settings = {
   stepGoal: number;
   hydrationGoalMl: number; // ideal daily goal
   hydrationMinimumMl: number; // minimum acceptable daily intake
+  catalogueSeeded: boolean; // Step 3: one-time structural seed flag
 };
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -74,4 +75,60 @@ export const DEFAULT_SETTINGS: Settings = {
   stepGoal: 10000,
   hydrationGoalMl: 2500,
   hydrationMinimumMl: 2000,
+  catalogueSeeded: false,
+};
+
+// ---------------------------------------------------------------------------
+// Step 3 auxiliary state. These live alongside Habit/Completion in Dexie but
+// aren't habit ticks — they're free-form per-day or per-domain blobs.
+// ---------------------------------------------------------------------------
+
+// Deen tab — Quran reading position + Hifdh map. Single-row table.
+export type DeenState = {
+  id: "singleton";
+  quran: {
+    currentJuz: number;       // 1–30
+    currentSurah: number;     // 1–114
+    currentAyah: number;      // within currentSurah
+    lastOpenedAt?: number;    // epoch ms
+  };
+  hifdh: {
+    // Per-juz memorisation status. Missing keys = "untouched".
+    juzStatus: Partial<Record<number, "in-progress" | "complete">>;
+  };
+  // Free-text notes captured for "what did I memorise today", keyed by
+  // YYYY-MM-DD. Kept on the singleton for now — easy to denormalise later.
+  hifdhNotesByDate: Record<string, string>;
+  // Pages of tilawah read each day. Per-date counter, manually stepped.
+  pagesReadByDate: Record<string, number>;
+};
+
+export const DEFAULT_DEEN_STATE: DeenState = {
+  id: "singleton",
+  quran: { currentJuz: 1, currentSurah: 1, currentAyah: 1 },
+  hifdh: { juzStatus: {} },
+  hifdhNotesByDate: {},
+  pagesReadByDate: {},
+};
+
+// Lifestyle tab — sleep log per date.
+export type SleepLog = {
+  date: string;        // 'YYYY-MM-DD' local — primary key
+  bedTime?: string;    // 'HH:mm' the night previous to `date`
+  wakeTime?: string;   // 'HH:mm' on the morning of `date`
+  updatedAt: number;
+};
+
+// Lifestyle tab — meal log per date (free text).
+export type MealLog = {
+  date: string;        // 'YYYY-MM-DD' local — primary key
+  text: string;
+  updatedAt: number;
+};
+
+// Work tab — daily planning's optional "tomorrow's top 3" text.
+export type DailyPlan = {
+  date: string;        // 'YYYY-MM-DD' local — primary key (the day the plan is FOR)
+  text: string;
+  updatedAt: number;
 };
