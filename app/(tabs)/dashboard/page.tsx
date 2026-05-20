@@ -2,34 +2,63 @@
 
 import { useLiveQuery } from "dexie-react-hooks";
 import { Plus } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { CreateHabitDialog } from "@/components/habits/CreateHabitDialog";
-import { HabitCard } from "@/components/habits/HabitCard";
+import { DayDetailModal } from "@/components/dashboard/DayDetailModal";
+import { HighlightsFeed } from "@/components/dashboard/HighlightsFeed";
+import { InsightsStrip } from "@/components/dashboard/InsightsStrip";
+import { ProgressRing } from "@/components/dashboard/ProgressRing";
+import { WeekStrip } from "@/components/dashboard/WeekStrip";
 import { getDb } from "@/lib/db";
+import { toLocalDateString } from "@/lib/utils/date";
 
-// Step 2 sandbox: a flat list of HabitCards so the completion
-// micro-interaction can be exercised on-device. Step 3 replaces this with
-// the real Dashboard (week strip, ring, highlights).
+// §5.1 Dashboard. Week strip → progress ring → highlights feed → insights.
+// Real streak logic + deeper analytics land in Step 4.
 export default function DashboardPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+
+  const today = useMemo(() => toLocalDateString(), []);
+
   const habits = useLiveQuery(
     () =>
       getDb()
         .habits.filter((h) => !h.archivedAt)
-        .sortBy("order"),
+        .toArray(),
     [],
   );
 
-  const isLoading = habits === undefined;
-  const isEmpty = !isLoading && habits.length === 0;
+  const todayCompletions = useLiveQuery(
+    () =>
+      getDb()
+        .completions.where("date")
+        .equals(today)
+        .toArray(),
+    [today],
+  );
+
+  const { scheduledCount, completedCount } = useMemo(() => {
+    if (!habits || !todayCompletions) {
+      return { scheduledCount: 0, completedCount: 0 };
+    }
+    const dow = new Date().getDay();
+    const scheduled = habits.filter((h) => h.schedule.days.includes(dow));
+    const doneSet = new Set(todayCompletions.map((c) => c.habitId));
+    return {
+      scheduledCount: scheduled.length,
+      completedCount: scheduled.filter((h) => doneSet.has(h.id)).length,
+    };
+  }, [habits, todayCompletions]);
+
+  const isEmpty = habits !== undefined && habits.length === 0;
 
   return (
-    <section className="pb-6">
-      <header className="mb-4 flex items-baseline justify-between">
+    <section className="space-y-6 pb-6">
+      <header className="flex items-baseline justify-between">
         <div>
           <h1 className="text-[28px] font-semibold text-text">Dashboard</h1>
           <p className="mt-1 text-xs text-text-muted">
-            Step 2 sandbox · real layout lands in step 3
+            Today at a glance.
           </p>
         </div>
         <button
@@ -46,11 +75,9 @@ export default function DashboardPage() {
         </button>
       </header>
 
-      {isLoading && (
-        <p className="text-sm text-text-muted">Loading…</p>
-      )}
+      <WeekStrip onSelectDay={(info) => setSelectedDate(info.dateStr)} />
 
-      {isEmpty && (
+      {isEmpty ? (
         <div
           className="rounded-card p-6 text-center"
           style={{
@@ -71,19 +98,34 @@ export default function DashboardPage() {
             Create your first habit
           </button>
         </div>
-      )}
+      ) : (
+        <>
+          <div className="flex justify-center">
+            <ProgressRing
+              completed={completedCount}
+              total={scheduledCount}
+            />
+          </div>
 
-      {habits && habits.length > 0 && (
-        <div className="space-y-3">
-          {habits.map((h) => (
-            <HabitCard key={h.id} habit={h} />
-          ))}
-        </div>
+          <div className="space-y-3">
+            <h2 className="text-[16px] font-semibold">Highlights</h2>
+            <HighlightsFeed />
+          </div>
+
+          <div className="space-y-3">
+            <h2 className="text-[16px] font-semibold">Insights</h2>
+            <InsightsStrip />
+          </div>
+        </>
       )}
 
       <CreateHabitDialog
         open={dialogOpen}
         onClose={() => setDialogOpen(false)}
+      />
+      <DayDetailModal
+        date={selectedDate}
+        onClose={() => setSelectedDate(null)}
       />
     </section>
   );
