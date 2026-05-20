@@ -1,20 +1,17 @@
 "use client";
 
 import { useEffect } from "react";
-import { ensureCatalogueSeed } from "@/lib/db/seed";
 import { useSettingsStore } from "@/lib/stores/settings";
 
-// Runs once on mount in the (tabs) layout. Reads the persisted Settings
-// row from Dexie, applies the theme, refreshes the localStorage
-// pre-paint cache, and ensures the Step 3 structural habit catalogue
-// has been seeded (idempotent — guarded by Settings.catalogueSeeded).
+// Mounts at the root layout. Hydrates the Settings store from Dexie so the
+// theme, start-of-week, enabledTabs etc. are available everywhere on first
+// paint. Catalogue seeding has moved into the onboarding flow (§10, Step 5)
+// — once `onboardingCompletedAt` is set the gate stops redirecting and the
+// rest of the app runs normally.
 export function AppHydrator() {
   const hydrate = useSettingsStore((s) => s.hydrate);
   useEffect(() => {
-    void (async () => {
-      await hydrate();
-      await ensureCatalogueSeed();
-    })();
+    void hydrate();
   }, [hydrate]);
   return null;
 }

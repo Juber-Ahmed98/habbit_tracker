@@ -1,6 +1,7 @@
 import Dexie, { type Table } from "dexie";
 import {
   DEFAULT_DEEN_STATE,
+  DEFAULT_ENABLED_TABS,
   DEFAULT_SETTINGS,
   type Completion,
   type DailyPlan,
@@ -48,6 +49,21 @@ class HabitTrackerDB extends Dexie {
       mealLogs: "date",
       dailyPlans: "date",
     });
+
+    // v3 — Step 5 adds `enabledTabs`, `displayName`, and `onboardingCompletedAt`
+    // to Settings. No index/table shape changes; the bump is here only so
+    // `ensureSettingsSeed` can rely on a v3 connection for the backfill it
+    // performs at runtime. Existing data is preserved.
+    this.version(3).stores({
+      habits: "id, tab, order, archivedAt, category",
+      completions: "id, habitId, date, [habitId+date]",
+      streakSnapshots: "habitId",
+      settings: "id",
+      deenState: "id",
+      sleepLogs: "date",
+      mealLogs: "date",
+      dailyPlans: "date",
+    });
   }
 }
 
@@ -66,17 +82,28 @@ export function getDb(): HabitTrackerDB {
 }
 
 // First-run seed: ensure a Settings row exists. Idempotent.
-// Also backfills any fields added in later versions so existing v1 users
-// don't see `undefined` for `catalogueSeeded` after the v2 bump.
+// Also backfills any fields added in later versions so existing v1/v2 users
+// don't see `undefined` for `catalogueSeeded` / `enabledTabs` after the bumps.
 export async function ensureSettingsSeed(): Promise<Settings> {
   const db = getDb();
   const existing = await db.settings.get("singleton");
   if (existing) {
-    const backfilled: Settings = { ...DEFAULT_SETTINGS, ...existing };
-    if (
+    const backfilled: Settings = {
+      ...DEFAULT_SETTINGS,
+      ...existing,
+      // Merge enabledTabs explicitly: a partial saved value (e.g. missing
+      // `dashboard` after a future migration) shouldn't drop the defaults.
+      enabledTabs: {
+        ...DEFAULT_ENABLED_TABS,
+        ...(existing.enabledTabs ?? {}),
+        dashboard: true, // dashboard is the home fallback; cannot be disabled
+      },
+    };
+    const needsWrite =
       backfilled.catalogueSeeded === undefined ||
-      backfilled.hydrationMinimumMl === undefined
-    ) {
+      backfilled.hydrationMinimumMl === undefined ||
+      existing.enabledTabs === undefined;
+    if (needsWrite) {
       await db.settings.put(backfilled);
     }
     return backfilled;

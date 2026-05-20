@@ -51,6 +51,11 @@ export type StreakSnapshot = {
 export type ThemeChoice = "system" | "light" | "dark";
 export type UnitSystem = "metric" | "imperial";
 
+// All five tab routes. Dashboard is the home fallback — UI keeps it locked on.
+export type TabKey = "dashboard" | "fitness" | "work" | "deen" | "lifestyle";
+
+export type EnabledTabs = Record<TabKey, boolean>;
+
 export type Settings = {
   id: "singleton"; // single-row table; fixed key
   theme: ThemeChoice;
@@ -65,6 +70,18 @@ export type Settings = {
   hydrationGoalMl: number; // ideal daily goal
   hydrationMinimumMl: number; // minimum acceptable daily intake
   catalogueSeeded: boolean; // Step 3: one-time structural seed flag
+  // Step 5 additions ---------------------------------------------------------
+  displayName?: string;             // Optional name captured in onboarding.
+  enabledTabs: EnabledTabs;         // Per-tab visibility. Dashboard always true.
+  onboardingCompletedAt?: number;   // Epoch ms; presence gates /onboarding redirect.
+};
+
+export const DEFAULT_ENABLED_TABS: EnabledTabs = {
+  dashboard: true,
+  fitness: true,
+  work: true,
+  deen: true,
+  lifestyle: true,
 };
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -78,6 +95,7 @@ export const DEFAULT_SETTINGS: Settings = {
   hydrationGoalMl: 2500,
   hydrationMinimumMl: 2000,
   catalogueSeeded: false,
+  enabledTabs: DEFAULT_ENABLED_TABS,
 };
 
 // ---------------------------------------------------------------------------

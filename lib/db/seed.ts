@@ -3,100 +3,54 @@
 import { ensureSettingsSeed, getDb } from "./index";
 import { type Habit, type HabitTab } from "./schema";
 
-// Structural habit catalogue seeded once on first run. After the
-// `catalogueSeeded` flag is set we never re-seed — if the user deletes
-// "Pomodoro" they shouldn't see it come back. The user can re-add anything
-// via the Add button on Dashboard.
+// Structural habit catalogue offered on first run. From Step 5 onwards the
+// onboarding flow (§10) drives this selection — `ensureCatalogueSeed` remains
+// as a fallback for users who skip onboarding entirely (the flow always sets
+// `catalogueSeeded: true` so this returns immediately for them).
 //
 // Category strings are namespaced `<tab>-<group>` so each tab page can pull
 // its sections via a Dexie equality query.
 
-type CatalogueRow = {
+export type CatalogueRow = {
+  // Stable key used by the onboarding selector. Don't reuse — adding a new
+  // habit means adding a new key; renaming a habit should keep the old key.
+  key: string;
   tab: HabitTab;
   category: string;
   name: string;
   icon: string;
 };
 
-const CATALOGUE: CatalogueRow[] = [
+export const CATALOGUE: CatalogueRow[] = [
   // Work — Focus
-  { tab: "work", category: "work-focus", name: "Pomodoro", icon: "timer" },
-  {
-    tab: "work",
-    category: "work-focus",
-    name: "Skill building",
-    icon: "bookOpen",
-  },
+  { key: "work-pomodoro", tab: "work", category: "work-focus", name: "Pomodoro", icon: "timer" },
+  { key: "work-skill", tab: "work", category: "work-focus", name: "Skill building", icon: "bookOpen" },
   // Work — Productivity
-  {
-    tab: "work",
-    category: "work-productivity",
-    name: "Inbox Zero",
-    icon: "inbox",
-  },
-  {
-    tab: "work",
-    category: "work-productivity",
-    name: "Daily planning",
-    icon: "briefcase",
-  },
+  { key: "work-inbox", tab: "work", category: "work-productivity", name: "Inbox Zero", icon: "inbox" },
+  { key: "work-planning", tab: "work", category: "work-productivity", name: "Daily planning", icon: "briefcase" },
 
   // Lifestyle — Skincare
-  {
-    tab: "lifestyle",
-    category: "lifestyle-skincare",
-    name: "Morning skincare",
-    icon: "sun",
-  },
-  {
-    tab: "lifestyle",
-    category: "lifestyle-skincare",
-    name: "Evening skincare",
-    icon: "moon",
-  },
+  { key: "lifestyle-skincare-am", tab: "lifestyle", category: "lifestyle-skincare", name: "Morning skincare", icon: "sun" },
+  { key: "lifestyle-skincare-pm", tab: "lifestyle", category: "lifestyle-skincare", name: "Evening skincare", icon: "moon" },
   // Lifestyle — Sleep
-  {
-    tab: "lifestyle",
-    category: "lifestyle-sleep",
-    name: "Wind-down by 10pm",
-    icon: "moon",
-  },
+  { key: "lifestyle-winddown", tab: "lifestyle", category: "lifestyle-sleep", name: "Wind-down by 10pm", icon: "moon" },
   // Lifestyle — Diet
-  {
-    tab: "lifestyle",
-    category: "lifestyle-diet",
-    name: "Clean eating",
-    icon: "leaf",
-  },
-  {
-    tab: "lifestyle",
-    category: "lifestyle-diet",
-    name: "No sugar",
-    icon: "leaf",
-  },
+  { key: "lifestyle-clean-eating", tab: "lifestyle", category: "lifestyle-diet", name: "Clean eating", icon: "leaf" },
+  { key: "lifestyle-no-sugar", tab: "lifestyle", category: "lifestyle-diet", name: "No sugar", icon: "leaf" },
 
   // Deen
-  {
-    tab: "deen",
-    category: "deen-reading",
-    name: "Read Quran today",
-    icon: "bookOpen",
-  },
-  {
-    tab: "deen",
-    category: "deen-memorization",
-    name: "Revised memorisation",
-    icon: "sparkles",
-  },
+  { key: "deen-tilawah", tab: "deen", category: "deen-reading", name: "Read Quran today", icon: "bookOpen" },
+  { key: "deen-revision", tab: "deen", category: "deen-memorization", name: "Revised memorisation", icon: "sparkles" },
 ];
 
-export async function ensureCatalogueSeed(): Promise<void> {
+// Materialise selected catalogue rows as Habit records. Does NOT touch the
+// `catalogueSeeded` flag — callers are responsible for marking the seed done.
+export async function seedCatalogueRows(rows: CatalogueRow[]): Promise<void> {
+  if (rows.length === 0) return;
   const db = getDb();
-  const settings = await ensureSettingsSeed();
-  if (settings.catalogueSeeded) return;
-
   const now = Date.now();
-  const habits: Habit[] = CATALOGUE.map((row, index) => ({
+  const existingCount = await db.habits.count();
+  const habits: Habit[] = rows.map((row, i) => ({
     id: crypto.randomUUID(),
     tab: row.tab,
     category: row.category,
@@ -105,11 +59,23 @@ export async function ensureCatalogueSeed(): Promise<void> {
     type: "toggle",
     schedule: { days: [0, 1, 2, 3, 4, 5, 6] },
     createdAt: now,
-    order: index + 1,
+    // Append after any existing rows so onboarding seeds don't collide with
+    // habits a user manually added before completing onboarding.
+    order: existingCount + i + 1,
   }));
+  await db.habits.bulkPut(habits);
+}
+
+// Legacy fallback — kept for installs where onboarding never ran (e.g. older
+// builds before Step 5). New installs go through onboarding which sets
+// `catalogueSeeded` directly. Idempotent.
+export async function ensureCatalogueSeed(): Promise<void> {
+  const db = getDb();
+  const settings = await ensureSettingsSeed();
+  if (settings.catalogueSeeded) return;
 
   await db.transaction("rw", db.habits, db.settings, async () => {
-    await db.habits.bulkPut(habits);
+    await seedCatalogueRows(CATALOGUE);
     await db.settings.put({ ...settings, catalogueSeeded: true });
   });
 }
