@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2C3038" />
+      <stop offset="100%" stop-color="#1A1C20" />
+    </linearGradient>
+    <radialGradient id="coreGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFC83B" stop-opacity="0.25" />
+      <stop offset="100%" stop-color="#FFC83B" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFE082" />
+      <stop offset="100%" stop-color="#FFC83B" />
+    </linearGradient>
+    <linearGradient id="streakGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#FF9145" />
+      <stop offset="100%" stop-color="#FFC83B" />
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bgGrad)" />
+  <g stroke="#3F4550" stroke-width="1" stroke-dasharray="4 8" opacity="0.4">
+    <line x1="256" y1="40" x2="256" y2="472" />
+    <line x1="40" y1="256" x2="472" y2="256" />
+  </g>
+  <circle cx="256" cy="256" r="180" fill="url(#coreGlow)" />
+  <g stroke="#A8A095" stroke-width="3" stroke-linecap="round" opacity="0.25">
+    <line x1="256" y1="256" x2="256" y2="90" />
+    <line x1="256" y1="256" x2="414" y2="205" />
+    <line x1="256" y1="256" x2="353" y2="390" />
+    <line x1="256" y1="256" x2="159" y2="390" />
+    <line x1="256" y1="256" x2="98" y2="205" />
+  </g>
+  <circle cx="256" cy="256" r="120" fill="none" stroke="#3F4550" stroke-width="16" />
+  <circle cx="256" cy="256" r="120" fill="none" stroke="url(#streakGrad)" stroke-width="16"
+          stroke-linecap="round" stroke-dasharray="580 754" transform="rotate(-110 256 256)" />
+  <circle cx="256" cy="256" r="76" fill="none" stroke="#8D7A68" stroke-width="4" stroke-dasharray="6 6" />
+  <circle cx="256" cy="256" r="60" fill="url(#accentGrad)" />
+  <path d="M226 256 L246 276 L286 230"
+        fill="none"
+        stroke="#2A1F00"
+        stroke-width="12"
+        stroke-linecap="round"
+        stroke-linejoin="round" />
+  <path d="M312 184 C312 184 326 194 326 208 C326 218 318 226 308 226 C298 226 290 218 290 208 C290 196 302 188 302 188 C302 188 304 198 312 184 Z"
+        fill="#FF9145" />
+</svg>
