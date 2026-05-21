@@ -12,6 +12,7 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { restoreBackup } from "@/lib/backup/restore";
 import { fetchBackup, uploadBackup } from "@/lib/backup/sync";
+import { disablePush } from "@/lib/notifications/subscribe";
 import { useBackupStore } from "@/lib/stores/backup";
 import { useSettingsStore } from "@/lib/stores/settings";
 import { getSupabase, isSupabaseConfigured } from "@/lib/supabase/client";
@@ -127,6 +128,10 @@ function BackupCardInner() {
   }
 
   async function signOut() {
+    // Tear down push *before* signing out — disablePush needs the session
+    // cookie to delete its push_subscriptions row (RLS). Failing here is
+    // non-fatal; we still proceed to sign-out so the user isn't stranded.
+    await disablePush().catch(() => undefined);
     const supabase = getSupabase();
     await supabase.auth.signOut();
     setOverride({ kind: "ok", text: "Signed out." });
