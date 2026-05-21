@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { maybeAutoBackup } from "@/lib/backup/sync";
 import { ensureFitnessSeed } from "@/lib/db/seed";
+import { syncReminderSchedulesNow } from "@/lib/notifications/schedule-sync";
 import { subscribeBackupAuth } from "@/lib/stores/backup";
 import { useSettingsStore } from "@/lib/stores/settings";
 import { syncStravaActivities } from "@/lib/strava/sync";
@@ -41,6 +42,10 @@ export function AppHydrator() {
       // Daily auto-backup. maybeAutoBackup quietly no-ops when the user
       // isn't signed in or the local marker is fresh.
       void maybeAutoBackup();
+
+      // Step 11b: mirror per-habit reminder schedules into Supabase so the
+      // hourly cron route has fresh data. No-op when the user isn't signed in.
+      void syncReminderSchedulesNow();
     })();
   }, [hydrate]);
   return null;

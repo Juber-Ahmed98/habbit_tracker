@@ -10,6 +10,7 @@ import {
   type HabitType,
 } from "../db/schema";
 import { milestoneCrossed } from "../haptics";
+import { scheduleReminderSync } from "../notifications/schedule-sync";
 import { computeStreak } from "../streaks/compute";
 import { useSettingsStore } from "./settings";
 import { toLocalDateString } from "../utils/date";
@@ -120,6 +121,9 @@ export const useHabitsStore = create<HabitsStore>((set) => ({
       order: maxOrder + 1,
     };
     await db.habits.put(habit);
+    // Server-side reminder mirror — fires only when signed in. Debounced so
+    // catalogue seeds in onboarding don't fan out N requests.
+    scheduleReminderSync();
     return id;
   },
 
@@ -130,6 +134,10 @@ export const useHabitsStore = create<HabitsStore>((set) => ({
     if (patch.schedule) {
       await refreshStreak(id);
     }
+    // Name / tab / schedule / archive flag could all affect the server-side
+    // reminder row; just re-sync unconditionally. Sync is itself idempotent
+    // and cheap when nothing changed.
+    scheduleReminderSync();
   },
 
   async deleteHabit(id) {
@@ -145,6 +153,7 @@ export const useHabitsStore = create<HabitsStore>((set) => ({
         await db.habits.delete(id);
       },
     );
+    scheduleReminderSync();
   },
 
   async tickHabit(habitId, date, source = "manual") {
