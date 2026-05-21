@@ -183,7 +183,7 @@ function EditHabitForm({
           </p>
         )}
         <p className="mt-1 text-xs" style={{ color: "var(--text-muted)" }}>
-          Reminders fire when notifications land in Step 5.
+          Reminders fire at this time when push is enabled in Settings.
         </p>
       </div>
 

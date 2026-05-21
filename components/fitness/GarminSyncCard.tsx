@@ -29,7 +29,7 @@ function computeStatus(
     return {
       dot: "red",
       title: "Strava not connected",
-      detail: "Connects in step 7 — opens Settings.",
+      detail: "Tap to connect in Settings.",
     };
   }
   if (!lastSyncAt) {

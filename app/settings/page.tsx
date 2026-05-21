@@ -222,12 +222,6 @@ export default function SettingsPage() {
         </button>
       </SettingsCard>
 
-      <p
-        className="pt-2 text-center text-[11px]"
-        style={{ color: "var(--text-muted)" }}
-      >
-        Units and exports arrive in later steps.
-      </p>
     </main>
   );
 }

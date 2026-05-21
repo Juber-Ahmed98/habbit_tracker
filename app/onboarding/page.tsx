@@ -442,7 +442,7 @@ function StepGoals({
       />
       <NumberField
         label="Max heart rate (optional)"
-        hint="Used for Live HR zones in step 8. Leave blank if you're not sure."
+        hint="Used for Live HR zones. Leave blank if you're not sure."
         value={draft.maxHr ?? 0}
         onChange={(n) => setDraft((d) => ({ ...d, maxHr: n > 0 ? n : undefined }))}
         step={1}
@@ -518,7 +518,7 @@ function StepConnections() {
       <div>
         <h1 className="text-[24px] font-semibold">Connections</h1>
         <p className="mt-1 text-sm" style={{ color: "var(--text-muted)" }}>
-          These land in upcoming steps — finish onboarding now and wire them up later.
+          Set these up in Settings whenever you&apos;re ready.
         </p>
       </div>
 
@@ -537,21 +537,35 @@ function StepConnections() {
             className="rounded-full px-2 py-1 text-[10px] font-medium uppercase tracking-wide"
             style={{ backgroundColor: "var(--surface-alt)", color: "var(--text-muted)" }}
           >
-            Step 7
+            Settings
           </span>
         </div>
         <div className="flex items-center justify-between gap-3">
           <div>
             <p className="text-sm font-medium">Reminders</p>
             <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-              Per-habit nudges and an evening summary.
+              Per-habit nudges via web push.
             </p>
           </div>
           <span
             className="rounded-full px-2 py-1 text-[10px] font-medium uppercase tracking-wide"
             style={{ backgroundColor: "var(--surface-alt)", color: "var(--text-muted)" }}
           >
-            Cloud sync
+            Settings
+          </span>
+        </div>
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-medium">Cloud backup</p>
+            <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+              Optional Supabase sign-in to back up your data.
+            </p>
+          </div>
+          <span
+            className="rounded-full px-2 py-1 text-[10px] font-medium uppercase tracking-wide"
+            style={{ backgroundColor: "var(--surface-alt)", color: "var(--text-muted)" }}
+          >
+            Settings
           </span>
         </div>
       </div>

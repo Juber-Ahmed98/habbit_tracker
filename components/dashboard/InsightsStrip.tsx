@@ -62,6 +62,21 @@ export function InsightsStrip() {
     [],
   );
 
+  // Fitness sessions this calendar week — counts any source (manual / Strava
+  // / BLE / FIT / future Garmin). Range query against the indexed startedAt
+  // column so the count stays cheap as the log grows.
+  const weekSessions = useLiveQuery(
+    () => {
+      const start = startOfWeek(new Date(), { weekStartsOn: startOn });
+      const end = addDays(start, 7);
+      return getDb()
+        .fitnessSessions.where("startedAt")
+        .between(start.getTime(), end.getTime(), true, false)
+        .count();
+    },
+    [startOn],
+  );
+
   const cards: Card[] = useMemo(() => {
     const activeCount = habits?.length ?? 0;
     const todayDone = todayCompletions ?? 0;
@@ -100,13 +115,12 @@ export function InsightsStrip() {
         value: bestStreak > 0 ? `${bestStreak} days` : "—",
       },
       {
-        key: "garmin",
-        label: "Garmin sessions",
-        value: "—",
-        hint: "Connects in step 7",
+        key: "sessions",
+        label: "Sessions this week",
+        value: String(weekSessions ?? 0),
       },
     ];
-  }, [habits, todayCompletions, weekCompletions, snapshots]);
+  }, [habits, todayCompletions, weekCompletions, snapshots, weekSessions]);
 
   return (
     <div className="-mx-4 overflow-x-auto px-4 [scrollbar-width:none]">

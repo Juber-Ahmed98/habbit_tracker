@@ -73,7 +73,7 @@ export function RecentActivitiesList() {
 
       {sessions === undefined ? null : sessions.length === 0 ? (
         <p className="px-1 py-3 text-sm" style={{ color: "var(--text-muted)" }}>
-          No activities yet. Log one above, or wait for Strava sync (step 7).
+          No activities yet. Log one above, or sync Strava from Settings.
         </p>
       ) : (
         <ul className="divide-y" style={{ borderColor: "var(--border)" }}>

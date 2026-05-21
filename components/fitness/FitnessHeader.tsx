@@ -3,14 +3,14 @@
 import { useLiveQuery } from "dexie-react-hooks";
 import { formatDistanceToNowStrict } from "date-fns";
 import { Flame, Radio } from "lucide-react";
+import Link from "next/link";
 import { getDb } from "@/lib/db";
 import { type FitnessSession, type StreakSnapshot } from "@/lib/db/schema";
 import { useSettingsStore } from "@/lib/stores/settings";
 import { formatDistance } from "@/lib/utils/format";
 
 // §5.2 header strip. Three cells: workout streak, last activity preview, and
-// a "Live Workout" button that's a disabled stub until Step 8 brings the
-// Web Bluetooth HR monitor online.
+// a "Live Workout" entry into the Web Bluetooth HR monitor at /fitness/live.
 
 const SESSION_LABEL: Record<FitnessSession["type"], string> = {
   run: "Run",
@@ -121,22 +121,19 @@ export function FitnessHeader() {
             className="mt-1 text-xs"
             style={{ color: "var(--text-muted)" }}
           >
-            Strava sync arrives in step 7.
+            Log a session, or connect Strava in Settings.
           </p>
         )}
       </div>
 
-      {/* Live workout — disabled stub until Step 8 */}
-      <button
-        type="button"
-        disabled
-        aria-label="Live workout (available in step 8)"
+      {/* Live workout — opens the BLE HR monitor overlay at /fitness/live. */}
+      <Link
+        href="/fitness/live"
+        aria-label="Live workout"
         className="flex flex-col items-start justify-between rounded-card px-3 py-2.5 text-left"
         style={{
           backgroundColor: "var(--surface)",
-          border: "1px dashed var(--border)",
-          opacity: 0.6,
-          cursor: "not-allowed",
+          border: "1px solid var(--border)",
         }}
       >
         <p
@@ -146,9 +143,9 @@ export function FitnessHeader() {
           Live workout
         </p>
         <span className="mt-1 inline-flex items-center gap-1 text-sm font-semibold">
-          <Radio size={14} aria-hidden /> Step 8
+          <Radio size={14} aria-hidden /> Start
         </span>
-      </button>
+      </Link>
 
     </section>
   );

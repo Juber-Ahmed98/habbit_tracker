@@ -38,13 +38,6 @@ export default function InsightsPage() {
         <BestStreaksList />
         <HabitHeatmap />
       </Suspense>
-
-      <p
-        className="pt-2 text-center text-[11px]"
-        style={{ color: "var(--text-muted)" }}
-      >
-        Garmin sessions arrive in step 7.
-      </p>
     </main>
   );
 }
