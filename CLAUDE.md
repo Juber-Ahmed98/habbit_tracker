@@ -5,9 +5,9 @@ contract for how to collaborate. Read it on every session start.
 
 ## The spec is authoritative
 
-The spec lives at `C:\Users\moham\Downloads\habit-tracker-spec.md`. Read it
-before proposing anything — especially §13 (build order) and §3 / §5 / §6 / §11
-for whichever step you're on.
+The spec lives at `docs/habit-tracker-spec.md`. Read it before proposing
+anything — especially §13 (build order) and §3 / §5 / §6 / §11 for whichever
+step you're on.
 
 ## Standing constraints (from the user, verbatim)
 
