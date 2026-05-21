@@ -9,6 +9,7 @@ import {
   type HabitTab,
   type HabitType,
 } from "../db/schema";
+import { milestoneCrossed } from "../haptics";
 import { computeStreak } from "../streaks/compute";
 import { useSettingsStore } from "./settings";
 import { toLocalDateString } from "../utils/date";
@@ -30,6 +31,14 @@ export type FreezeApplyResult =
   | "already-completed"
   | "already-frozen-this-week";
 
+// toggleHabit's return surfaces the streak boundary just crossed so the
+// caller (HabitCard) can choose between HAPTIC_TAP and HAPTIC_MILESTONE.
+// `ticked: false` = the tap unticked an existing completion.
+export type ToggleHabitResult = {
+  ticked: boolean;
+  crossedMilestone: number | null;
+};
+
 type HabitsStore = {
   // Transient UI state — the habit being edited via the long-press sheet.
   editingHabitId: string | null;
@@ -46,7 +55,10 @@ type HabitsStore = {
     source?: CompletionSource,
   ) => Promise<void>;
   untickHabit: (habitId: string, date?: string) => Promise<void>;
-  toggleHabit: (habitId: string, date?: string) => Promise<boolean>;
+  toggleHabit: (
+    habitId: string,
+    date?: string,
+  ) => Promise<ToggleHabitResult>;
   applyFreezeDay: (habitId: string) => Promise<FreezeApplyResult>;
   removeFreezeDay: (habitId: string) => Promise<void>;
 };
@@ -173,8 +185,10 @@ export const useHabitsStore = create<HabitsStore>((set) => ({
     if (existing) {
       await db.completions.delete(existing.id);
       await refreshStreak(habitId);
-      return false;
+      return { ticked: false, crossedMilestone: null };
     }
+    // Snapshot the streak before the new tick so we can detect crossings.
+    const prevStreak = (await db.streakSnapshots.get(habitId))?.current ?? 0;
     await db.completions.put({
       id: crypto.randomUUID(),
       habitId,
@@ -183,7 +197,11 @@ export const useHabitsStore = create<HabitsStore>((set) => ({
       source: "manual",
     });
     await refreshStreak(habitId);
-    return true;
+    const nextStreak = (await db.streakSnapshots.get(habitId))?.current ?? 0;
+    return {
+      ticked: true,
+      crossedMilestone: milestoneCrossed(prevStreak, nextStreak),
+    };
   },
 
   async applyFreezeDay(habitId) {

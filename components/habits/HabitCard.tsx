@@ -10,7 +10,12 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { useMemo, useRef, useState, type PointerEvent } from "react";
 import { getDb } from "@/lib/db";
 import { type Habit } from "@/lib/db/schema";
-import { HAPTIC_TAP, vibrate } from "@/lib/haptics";
+import {
+  HAPTIC_LONG_PRESS,
+  HAPTIC_MILESTONE,
+  HAPTIC_TAP,
+  vibrate,
+} from "@/lib/haptics";
 import { useHabitsStore } from "@/lib/stores/habits";
 import { toLocalDateString } from "@/lib/utils/date";
 import { HabitIcon } from "./icons";
@@ -76,7 +81,7 @@ export function HabitCard({ habit }: Props) {
     clearLongPress();
     longPressTimer.current = setTimeout(() => {
       longPressFired.current = true;
-      vibrate(8);
+      vibrate(HAPTIC_LONG_PRESS);
       setEditingId(habit.id);
     }, LONG_PRESS_MS);
   };
@@ -103,8 +108,15 @@ export function HabitCard({ habit }: Props) {
       longPressFired.current = false;
       return;
     }
+    // Fire the tap haptic optimistically — the toggle write is async and we
+    // don't want a perceptible delay between press and buzz. If the tick
+    // crossed a streak milestone, follow up with the double-tap pattern.
     vibrate(HAPTIC_TAP);
-    void toggleHabit(habit.id);
+    void toggleHabit(habit.id).then((result) => {
+      if (result.crossedMilestone !== null) {
+        vibrate(HAPTIC_MILESTONE);
+      }
+    });
   };
 
   // Radial-fill clip path. Reduced motion: snap to fully filled (or empty).

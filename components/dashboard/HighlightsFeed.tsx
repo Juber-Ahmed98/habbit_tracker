@@ -5,7 +5,7 @@ import { Check, Flame } from "lucide-react";
 import { useMemo } from "react";
 import { HabitIcon } from "@/components/habits/icons";
 import { getDb } from "@/lib/db";
-import { HAPTIC_TAP, vibrate } from "@/lib/haptics";
+import { HAPTIC_MILESTONE, HAPTIC_TAP, vibrate } from "@/lib/haptics";
 import { type Habit, type StreakSnapshot } from "@/lib/db/schema";
 import { useHabitsStore } from "@/lib/stores/habits";
 import { toLocalDateString } from "@/lib/utils/date";
@@ -163,7 +163,11 @@ export function HighlightsFeed() {
             type="button"
             onClick={() => {
               vibrate(HAPTIC_TAP);
-              void toggleHabit(habit.id);
+              void toggleHabit(habit.id).then((result) => {
+                if (result.crossedMilestone !== null) {
+                  vibrate(HAPTIC_MILESTONE);
+                }
+              });
             }}
             aria-label={`Tick ${habit.name}`}
             className="inline-flex h-9 w-9 items-center justify-center rounded-lg"
