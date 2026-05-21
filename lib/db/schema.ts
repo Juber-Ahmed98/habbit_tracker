@@ -75,6 +75,8 @@ export type Settings = {
   displayName?: string;             // Optional name captured in onboarding.
   enabledTabs: EnabledTabs;         // Per-tab visibility. Dashboard always true.
   onboardingCompletedAt?: number;   // Epoch ms; presence gates /onboarding redirect.
+  // Step 11a addition --------------------------------------------------------
+  lastBackupAt?: number;            // Epoch ms; written by lib/backup/sync.
 };
 
 export const DEFAULT_ENABLED_TABS: EnabledTabs = {

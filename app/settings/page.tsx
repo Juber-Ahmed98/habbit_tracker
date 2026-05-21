@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Suspense, useState } from "react";
 import { FitSourceCard } from "@/components/fitness/FitSourceCard";
 import { StravaSourceCard } from "@/components/fitness/StravaSourceCard";
+import { BackupCard } from "@/components/settings/BackupCard";
 import {
   type EnabledTabs,
   type TabKey,
@@ -190,6 +191,11 @@ export default function SettingsPage() {
 
       {/* FIT file import --------------------------------------------------- */}
       <FitSourceCard />
+
+      {/* Cloud backup ------------------------------------------------------ */}
+      <Suspense fallback={null}>
+        <BackupCard />
+      </Suspense>
 
       {/* Notifications ----------------------------------------------------- */}
       <SettingsCard

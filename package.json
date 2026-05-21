@@ -11,6 +11,8 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
+    "@supabase/ssr": "^0.10.3",
+    "@supabase/supabase-js": "^2.106.1",
     "date-fns": "^4.2.1",
     "dexie": "^4.4.2",
     "dexie-react-hooks": "^4.4.0",
