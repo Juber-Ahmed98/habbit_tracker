@@ -240,7 +240,7 @@ export default function SettingsPage() {
         className="pt-2 text-center text-[11px]"
         style={{ color: "var(--text-muted)" }}
       >
-        Units, exports, and cloud sync arrive in later steps.
+        Units and exports arrive in later steps.
       </p>
     </main>
   );

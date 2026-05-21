@@ -28,10 +28,40 @@ type Banner =
 type BusyKind = "upload" | "restore" | null;
 
 export function BackupCard() {
-  // Render nothing when the env vars are absent so dev installs without
-  // Supabase configured stay clean. .env.example documents the variables.
-  if (!isSupabaseConfigured()) return null;
+  // Always render *something* so a misconfigured install never silently
+  // hides the card. Env vars are inlined into the client bundle at build
+  // time — if they're empty here the dev server (or Vercel build) didn't
+  // pick them up.
+  if (!isSupabaseConfigured()) return <NotConfiguredCard />;
   return <BackupCardInner />;
+}
+
+function NotConfiguredCard() {
+  return (
+    <section
+      className="space-y-2 rounded-card px-3 py-3"
+      style={{
+        backgroundColor: "var(--surface)",
+        border: "1px solid var(--border)",
+      }}
+    >
+      <p
+        className="text-[11px] font-medium uppercase tracking-wide"
+        style={{ color: "var(--text-muted)" }}
+      >
+        Cloud backup
+      </p>
+      <p className="text-[12px]" style={{ color: "var(--danger)" }}>
+        Supabase env vars not loaded in this build.
+      </p>
+      <p className="text-[11px]" style={{ color: "var(--text-muted)" }}>
+        Set <code>NEXT_PUBLIC_SUPABASE_URL</code> and{" "}
+        <code>NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY</code> in{" "}
+        <code>.env.local</code>, then fully restart the dev server (
+        <code>NEXT_PUBLIC_*</code> values are baked in at start).
+      </p>
+    </section>
+  );
 }
 
 function BackupCardInner() {
