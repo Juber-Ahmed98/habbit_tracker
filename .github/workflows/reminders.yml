@@ -1,0 +1,43 @@
+name: Hourly reminders
+
+# Vercel Hobby caps cron jobs at once-per-day, so we use GitHub Actions as a
+# free hourly scheduler that pings the Vercel-hosted /api/cron/reminders
+# endpoint. The route itself bears all the logic; this workflow is just a
+# remote timer.
+#
+# Setup (one-time):
+#   * Repository → Settings → Secrets and variables → Actions
+#       - Secrets   → New repository secret: CRON_SECRET (same value as Vercel)
+#       - Variables → New repository variable: APP_URL  (e.g.
+#                       https://habit-tracker-xxxx.vercel.app  — no trailing
+#                       slash)
+#
+# Notes:
+#   * GitHub Actions cron can drift up to ~15 minutes during peak times. We
+#     accept that; the route's last_fired_at dedupe handles same-hour retries.
+#   * GitHub disables scheduled workflows in repos with no commits for 60
+#     days. Active development is enough to keep this alive.
+#   * `workflow_dispatch` lets you manually trigger from the Actions tab —
+#     handy for end-to-end push tests without waiting for the top of the hour.
+
+on:
+  schedule:
+    - cron: "0 * * * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping reminders cron
+        env:
+          APP_URL: ${{ vars.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$APP_URL" ] || [ -z "$CRON_SECRET" ]; then
+            echo "::error::APP_URL variable or CRON_SECRET secret is missing."
+            exit 1
+          fi
+          curl -fsS --max-time 60 \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            "$APP_URL/api/cron/reminders"

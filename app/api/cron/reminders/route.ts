@@ -3,12 +3,14 @@ import { type PushPayload } from "@/lib/notifications/payload";
 import { sendPush } from "@/lib/notifications/webpush-server";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
-// Hourly Vercel Cron — fans out per-habit reminders. Triggered by the
-// `0 * * * *` entry in vercel.json.
+// Hourly fan-out of per-habit reminders. Scheduled externally because Vercel
+// Hobby caps cron at once-per-day; see .github/workflows/reminders.yml for
+// the GitHub Actions timer that pings this route every hour.
 //
-// Auth: Vercel injects `Authorization: Bearer ${CRON_SECRET}` into the
-// request when a CRON_SECRET env var is set on the project. We reject 401 if
-// the header doesn't match, so a hand-curled URL with no auth can't fan out.
+// Auth: `Authorization: Bearer ${CRON_SECRET}`. The workflow injects it from
+// a repo secret; same value lives in Vercel env so this route can verify.
+// We reject 401 if the header doesn't match, so a hand-curled URL with no
+// auth can't fan out.
 //
 // Resolution rule: for each `reminder_schedules` row, compute the row's
 // timezone-local current weekday + hour from "now". Fire when:
