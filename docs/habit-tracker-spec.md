@@ -1,6 +1,13 @@
 # Habit Tracker PWA — Build Specification
 
-> **Purpose:** This is the source-of-truth build prompt for Claude Code. Implement it as a Progressive Web App deployed to Netlify, optimised for a Samsung Galaxy S24 Ultra installed from Chrome.
+> **Purpose:** This is the source-of-truth build prompt for Claude Code. Implement it as a Progressive Web App deployed to Vercel, optimised for a Samsung Galaxy S24 Ultra installed from Chrome.
+
+> **Implementation status note (read first):** This spec is the original
+> intent. Shipped state, schema versions, and any decisions made during the
+> build live in code — check `git log`, `CLAUDE.md`, and `lib/db/schema.ts`
+> for the current truth. Where the build deliberately diverges from this
+> document, the divergence is called out inline below (search for
+> "**Deviation:**").
 
 ---
 
@@ -30,10 +37,10 @@ A personal habit tracker spanning five life domains (Dashboard, Fitness, Work, D
 | Dates | date-fns | Avoid moment.js |
 | Icons | Lucide React | Consistent stroke width |
 | Animations | Framer Motion | For the "fill yellow" reward and tab transitions |
-| Garmin/Strava OAuth | Netlify Functions | Holds client secrets server-side |
+| Garmin/Strava OAuth | Vercel API routes (Node runtime) | Holds client secrets server-side |
 | FIT parsing | `fit-file-parser` | Client-side parsing of uploaded .fit files |
-| Live BLE | Web Bluetooth API | Native browser API, no library |
-| Deployment | Netlify | Set OAuth secrets as env vars |
+| Live BLE | Web Bluetooth API | Native browser API, no library. Android Chrome only — iOS Safari, Firefox, and Brave are gated to an unsupported view |
+| Deployment | Vercel | Set OAuth secrets as env vars in the Vercel dashboard |
 
 ---
 
@@ -77,9 +84,9 @@ Implement these in order. Each tier is independently useful — ship Tier 1 firs
 
 Garmin Connect already auto-syncs activities to Strava if the user links them in the Garmin app once. Strava's API is free, public, and uses standard OAuth 2.0.
 
-- **Flow:** Settings → "Connect Strava" → redirect to `https://www.strava.com/oauth/authorize` with scope `read,activity:read_all` → Netlify Function exchanges code for tokens → tokens stored encrypted in IndexedDB (or Supabase if signed in).
+- **Flow:** Settings → "Connect Strava" → redirect to `https://www.strava.com/oauth/authorize` with scope `read,activity:read_all` → Vercel API route exchanges code for tokens. **Deviation from original spec:** tokens are *not* persisted in IndexedDB. They live only in an HMAC-SHA256-signed httpOnly cookie set by the server route, so the client never sees them — this is the only way to comply with §14 "never expose secrets to the client" while keeping the auth fully serverless. The athlete id is mirrored into Settings.strava in Dexie so the UI can render connection state without a network round-trip.
 - **Data pulled:** Distance, duration, type, calories, average/max HR, elevation, start time, GPS polyline for each activity.
-- **Sync cadence:** On app open, plus a "Refresh" button. Optionally subscribe to Strava webhooks via a Netlify Function for push updates.
+- **Sync cadence:** On app open (debounced — see `AppHydrator`), plus a manual "Refresh" button. Optionally subscribe to Strava webhooks via another Vercel API route for push updates.
 - **Endpoint:** `GET /api/v3/athlete/activities?after={lastSyncEpoch}` paginated.
 - **Mapping:** Strava activity → local `FitnessSession` record; if a "Gym / Workout" habit exists for that day, auto-tick it.
 
@@ -89,7 +96,7 @@ Modern Garmin watches (Forerunner, Fenix, Venu, Epix, Instinct) can broadcast he
 
 - **Use case:** A "Live Workout" screen inside Fitness that connects to the watch, streams HR in real time, plots it on a sparkline, and logs the session to IndexedDB when the user taps Stop.
 - **API:** `navigator.bluetooth.requestDevice({ filters: [{ services: ['heart_rate'] }] })` → GATT → `0x2A37` characteristic → `startNotifications`.
-- **Caveat:** Web Bluetooth requires the PWA be served over HTTPS (Netlify gives this for free) and the user must enable broadcast mode on the watch each session (Activity menu → Options → Broadcast Heart Rate).
+- **Caveat:** Web Bluetooth requires the PWA be served over HTTPS (Vercel gives this for free) and the user must enable broadcast mode on the watch each session (Activity menu → Options → Broadcast Heart Rate). On Android, the system Location toggle must also be on (Android gates BLE scanning behind Location even when the page doesn't read location). **Browser support is narrow:** Android Chrome works; iOS Safari, Firefox, and Brave do not — Brave's stricter permission sandbox blocks the API even on platforms where Chromium normally supports it. The live screen renders an "unsupported" fallback in those cases.
 - **UI:** Big BPM number, 60-second rolling chart, zone indicator (Z1–Z5 based on user-set max HR), elapsed timer.
 
 ### Tier 3 — Manual FIT file upload (fallback)
@@ -336,6 +343,12 @@ type Settings = {
 
 Dexie schema bumps on every breaking change; write migrations.
 
+> **Deviation:** the implementation has extended these shapes — for example
+> `Settings` carries `enabledTabs`, `displayName`, `onboardingCompletedAt`,
+> `hydrationMinimumMl`, and `catalogueSeeded`; `FitnessSession.source`
+> includes `"manual"` and `"fit"`; `Completion.source` adds `"fit"` and
+> `"freeze"`. Treat `lib/db/schema.ts` as authoritative.
+
 ---
 
 ## 7. Streak Logic
@@ -356,6 +369,11 @@ Dexie schema bumps on every breaking change; write migrations.
   - Evening summary at 21:00 if any scheduled habits remain unticked.
   - Streak-at-risk nudge at 20:00 if a streak of 3+ would break today.
 - Each notification deep-links to the relevant tab.
+
+> **Deviation:** notifications were deferred out of Step 5 — they ride
+> alongside Supabase cloud sync in Step 11 because reliable push needs a
+> real backend (web-push private key, subscription storage). Step 5's
+> Settings → Notifications toggle is shipped as a disabled placeholder.
 
 ---
 
@@ -415,22 +433,23 @@ Persist to `Settings` and seed `Habit` records.
 2. **Data layer:** Dexie schema, Zustand stores, HabitCard component with the full completion micro-interaction.
 3. **Dashboard, Work, Lifestyle, Deen** with manual ticking only.
 4. **Streaks + Insights.**
-5. **Notifications + onboarding.**
+5. **Onboarding + Settings.** *(Notifications were originally scoped here but deferred to step 11 — see §8.)*
 6. **Fitness tab — manual entry first.**
-7. **Strava OAuth** via Netlify Function. Sync activities, auto-tick gym habit.
+7. **Strava OAuth** via Vercel API route. Sync activities, auto-tick gym habit.
 8. **Web Bluetooth live HR monitor.**
 9. **FIT file import.**
 10. **Polish:** Framer Motion transitions, haptic tuning, dark-mode contrast pass, Lighthouse audit.
-11. **(Later)** Supabase cloud sync; Garmin Health API once approved.
+11. **(Later)** Supabase cloud sync; Garmin Health API once approved; web-push notifications.
 
 ---
 
-## 14. Environment Variables (Netlify)
+## 14. Environment Variables (Vercel)
 
 ```
 STRAVA_CLIENT_ID=
 STRAVA_CLIENT_SECRET=
-STRAVA_REDIRECT_URI=https://<your-site>.netlify.app/api/strava/callback
+STRAVA_REDIRECT_URI=https://<your-site>.vercel.app/api/strava/callback
+STRAVA_COOKIE_SECRET=        # HMAC key for the signed session cookie (32+ bytes)
 SUPABASE_URL=
 SUPABASE_ANON_KEY=
 # Garmin (when approved)
@@ -438,7 +457,7 @@ GARMIN_CONSUMER_KEY=
 GARMIN_CONSUMER_SECRET=
 ```
 
-Never expose secrets to the client — all token exchanges happen in Netlify Functions.
+Never expose secrets to the client — all token exchanges happen in Vercel API routes (Node runtime). Strava one-app-per-callback-domain means you need a separate Strava app registration for local dev (`http://localhost:3000/api/strava/callback`) and for the Vercel deployment.
 
 ---
 
