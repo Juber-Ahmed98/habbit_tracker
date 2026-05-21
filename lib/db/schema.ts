@@ -28,6 +28,7 @@ export type CompletionSource =
   | "garmin"
   | "strava"
   | "ble"
+  | "fit"     // Step 9 — gym auto-tick on a FIT-imported gym session.
   | "auto"
   | "freeze"; // §7 freeze day — counts as done for streak purposes but
               //          tagged so we can enforce one-per-week & render distinctly.

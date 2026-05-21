@@ -7,6 +7,11 @@ import {
   type FitnessSession,
   type FitnessSessionType,
 } from "../db/schema";
+import {
+  applyResolution,
+  type FitImportCandidate,
+  type FitImportResolution,
+} from "../fit/import";
 import { toLocalDateString } from "../utils/date";
 import { useHabitsStore } from "./habits";
 
@@ -30,6 +35,18 @@ export type CreateBleSessionInput = {
   deviceName?: string;
 };
 
+export type FitImportDecision = {
+  candidate: FitImportCandidate;
+  resolution: FitImportResolution;
+};
+
+export type FitImportSummary = {
+  inserted: number;
+  replaced: number;
+  merged: number;
+  skipped: number;
+};
+
 type FitnessStore = {
   // Local UI state — id of the session being viewed/edited.
   draftSessionOpen: boolean;
@@ -37,6 +54,7 @@ type FitnessStore = {
 
   createManualSession: (input: CreateSessionInput) => Promise<string>;
   createBleSession: (input: CreateBleSessionInput) => Promise<string>;
+  commitFitImport: (decisions: FitImportDecision[]) => Promise<FitImportSummary>;
   deleteSession: (id: string) => Promise<void>;
 
   // dailyMetrics writes
@@ -140,6 +158,66 @@ export const useFitnessStore = create<FitnessStore>((set) => ({
       }
     }
     return session.id;
+  },
+
+  async commitFitImport(decisions) {
+    const db = getDb();
+    const summary: FitImportSummary = {
+      inserted: 0,
+      replaced: 0,
+      merged: 0,
+      skipped: 0,
+    };
+
+    // Track which sessions should fire the gym auto-tick. "new" + "replace"
+    // both produce a freshly-written gym row from the FIT side, so the tick
+    // is appropriate. "merge" leaves the existing row's identity intact —
+    // its original write already had a chance to tick (or not).
+    const gymTickDates = new Set<string>();
+
+    for (const { candidate, resolution } of decisions) {
+      const row = applyResolution(candidate, resolution);
+      if (!row) {
+        summary.skipped += 1;
+        continue;
+      }
+      // For "replace" the new row carries the conflict's id (set by
+      // applyResolution); a `put` cleanly overwrites. For "merge" the row IS
+      // the conflict with overlays — same put-by-id semantics.
+      await db.fitnessSessions.put(row);
+
+      if (resolution === "new") {
+        summary.inserted += 1;
+        if (row.type === "gym") {
+          gymTickDates.add(toLocalDateString(new Date(row.startedAt)));
+        }
+      } else if (resolution === "replace") {
+        summary.replaced += 1;
+        if (row.type === "gym") {
+          gymTickDates.add(toLocalDateString(new Date(row.startedAt)));
+        }
+      } else if (resolution === "merge") {
+        summary.merged += 1;
+      }
+    }
+
+    if (gymTickDates.size > 0) {
+      const candidate = await db.habits
+        .where("tab")
+        .equals("fitness")
+        .filter((h) => h.category === "fitness-workout" && !h.archivedAt)
+        .first();
+      if (candidate) {
+        const habits = useHabitsStore.getState();
+        for (const date of gymTickDates) {
+          // tickHabit is idempotent; if the user already ticked manually
+          // the existing row wins. New ticks land with source="fit".
+          await habits.tickHabit(candidate.id, date, "fit");
+        }
+      }
+    }
+
+    return summary;
   },
 
   async deleteSession(id) {
