@@ -3,7 +3,8 @@
 import { ChevronLeft, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { Suspense, useState } from "react";
+import { StravaSourceCard } from "@/components/fitness/StravaSourceCard";
 import {
   type EnabledTabs,
   type TabKey,
@@ -163,6 +164,28 @@ export default function SettingsPage() {
           )}
         </ul>
       </SettingsCard>
+
+      {/* Strava ------------------------------------------------------------ */}
+      <Suspense
+        fallback={
+          <section
+            className="rounded-card px-3 py-3"
+            style={{
+              backgroundColor: "var(--surface)",
+              border: "1px solid var(--border)",
+            }}
+          >
+            <p
+              className="text-[11px] font-medium uppercase tracking-wide"
+              style={{ color: "var(--text-muted)" }}
+            >
+              Fitness sources · Strava
+            </p>
+          </section>
+        }
+      >
+        <StravaSourceCard />
+      </Suspense>
 
       {/* Notifications ----------------------------------------------------- */}
       <SettingsCard

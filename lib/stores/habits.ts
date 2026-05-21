@@ -3,7 +3,12 @@
 import { addDays, startOfWeek } from "date-fns";
 import { create } from "zustand";
 import { getDb } from "../db";
-import { type Habit, type HabitTab, type HabitType } from "../db/schema";
+import {
+  type CompletionSource,
+  type Habit,
+  type HabitTab,
+  type HabitType,
+} from "../db/schema";
 import { computeStreak } from "../streaks/compute";
 import { useSettingsStore } from "./settings";
 import { toLocalDateString } from "../utils/date";
@@ -35,7 +40,11 @@ type HabitsStore = {
   createHabit: (input: CreateHabitInput) => Promise<string>;
   updateHabit: (id: string, patch: Partial<Habit>) => Promise<void>;
   deleteHabit: (id: string) => Promise<void>;
-  tickHabit: (habitId: string, date?: string) => Promise<void>;
+  tickHabit: (
+    habitId: string,
+    date?: string,
+    source?: CompletionSource,
+  ) => Promise<void>;
   untickHabit: (habitId: string, date?: string) => Promise<void>;
   toggleHabit: (habitId: string, date?: string) => Promise<boolean>;
   applyFreezeDay: (habitId: string) => Promise<FreezeApplyResult>;
@@ -126,7 +135,7 @@ export const useHabitsStore = create<HabitsStore>((set) => ({
     );
   },
 
-  async tickHabit(habitId, date) {
+  async tickHabit(habitId, date, source = "manual") {
     const db = getDb();
     const dateStr = date ?? toLocalDateString();
     const existing = await db.completions
@@ -139,7 +148,7 @@ export const useHabitsStore = create<HabitsStore>((set) => ({
       habitId,
       date: dateStr,
       completedAt: Date.now(),
-      source: "manual",
+      source,
     });
     await refreshStreak(habitId);
   },
