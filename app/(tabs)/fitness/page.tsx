@@ -1,6 +1,7 @@
 "use client";
 
-import { Plus } from "lucide-react";
+import { Activity, Plus } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
 import { FitnessHeader } from "@/components/fitness/FitnessHeader";
 import { GarminSyncCard } from "@/components/fitness/GarminSyncCard";
@@ -31,14 +32,27 @@ export default function FitnessPage() {
 
       <FitnessHeader />
 
-      <button
-        type="button"
-        onClick={() => setLogOpen(true)}
-        className="inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold"
-        style={{ backgroundColor: "var(--accent)", color: "var(--accent-ink)" }}
-      >
-        <Plus size={16} aria-hidden /> Log activity
-      </button>
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={() => setLogOpen(true)}
+          className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold"
+          style={{ backgroundColor: "var(--accent)", color: "var(--accent-ink)" }}
+        >
+          <Plus size={16} aria-hidden /> Log activity
+        </button>
+        <Link
+          href="/fitness/live"
+          className="inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold"
+          style={{
+            backgroundColor: "var(--surface-alt)",
+            color: "var(--text)",
+            border: "1px solid var(--border)",
+          }}
+        >
+          <Activity size={16} aria-hidden /> Live
+        </Link>
+      </div>
 
       <Section
         title="Workout"

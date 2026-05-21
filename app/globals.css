@@ -19,6 +19,12 @@
   --success: #5c8a4e;
   --danger: #b85c4e;
   --streak: #f07a2c;
+  /* HR zones — used by /fitness/live (§3 Tier 2). */
+  --zone-1: #6b8aa8;
+  --zone-2: #5c8a4e;
+  --zone-3: #c9a04a;
+  --zone-4: #d67a3a;
+  --zone-5: #b85c4e;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -35,6 +41,11 @@
     --success: #7ab36a;
     --danger: #d67b6e;
     --streak: #ff9145;
+    --zone-1: #88a3c1;
+    --zone-2: #7ab36a;
+    --zone-3: #e0bd6a;
+    --zone-4: #ef9355;
+    --zone-5: #d67b6e;
   }
 }
 
@@ -51,6 +62,11 @@
   --success: #7ab36a;
   --danger: #d67b6e;
   --streak: #ff9145;
+  --zone-1: #88a3c1;
+  --zone-2: #7ab36a;
+  --zone-3: #e0bd6a;
+  --zone-4: #ef9355;
+  --zone-5: #d67b6e;
 }
 
 @theme inline {

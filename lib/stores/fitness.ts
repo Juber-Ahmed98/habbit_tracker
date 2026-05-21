@@ -22,12 +22,21 @@ export type CreateSessionInput = {
   notes?: string;
 };
 
+export type CreateBleSessionInput = {
+  type: FitnessSessionType;
+  startedAt: number;
+  durationSec: number;
+  hrSeries: Array<{ t: number; bpm: number }>;
+  deviceName?: string;
+};
+
 type FitnessStore = {
   // Local UI state — id of the session being viewed/edited.
   draftSessionOpen: boolean;
   setDraftSessionOpen: (open: boolean) => void;
 
   createManualSession: (input: CreateSessionInput) => Promise<string>;
+  createBleSession: (input: CreateBleSessionInput) => Promise<string>;
   deleteSession: (id: string) => Promise<void>;
 
   // dailyMetrics writes
@@ -94,6 +103,42 @@ export const useFitnessStore = create<FitnessStore>((set) => ({
     };
     await db.fitnessSessions.put(session);
     await autoTickGym(session);
+    return session.id;
+  },
+
+  async createBleSession(input) {
+    const db = getDb();
+    const hr = input.hrSeries;
+    const avgHr =
+      hr.length > 0
+        ? Math.round(hr.reduce((sum, s) => sum + s.bpm, 0) / hr.length)
+        : undefined;
+    const maxHr =
+      hr.length > 0 ? Math.max(...hr.map((s) => s.bpm)) : undefined;
+    const session: FitnessSession = {
+      id: crypto.randomUUID(),
+      source: "ble",
+      startedAt: input.startedAt,
+      durationSec: Math.max(0, Math.round(input.durationSec)),
+      type: input.type,
+      name: input.deviceName,
+      avgHr,
+      maxHr,
+      hrSeries: hr,
+    };
+    await db.fitnessSessions.put(session);
+    // Auto-tick the Gym habit per §3 Tier 1 — same rule as Strava/manual.
+    if (session.type === "gym") {
+      const candidate = await db.habits
+        .where("tab")
+        .equals("fitness")
+        .filter((h) => h.category === "fitness-workout" && !h.archivedAt)
+        .first();
+      if (candidate) {
+        const dateStr = toLocalDateString(new Date(session.startedAt));
+        await useHabitsStore.getState().tickHabit(candidate.id, dateStr, "ble");
+      }
+    }
     return session.id;
   },
 
