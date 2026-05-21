@@ -7,6 +7,7 @@ import { Suspense, useState } from "react";
 import { FitSourceCard } from "@/components/fitness/FitSourceCard";
 import { StravaSourceCard } from "@/components/fitness/StravaSourceCard";
 import { BackupCard } from "@/components/settings/BackupCard";
+import { NotificationsCard } from "@/components/settings/NotificationsCard";
 import {
   type EnabledTabs,
   type TabKey,
@@ -198,22 +199,7 @@ export default function SettingsPage() {
       </Suspense>
 
       {/* Notifications ----------------------------------------------------- */}
-      <SettingsCard
-        title="Notifications"
-        hint="Reminders arrive with cloud sync (step 11). Toggle is disabled until then."
-      >
-        <div
-          className="flex items-center justify-between rounded-xl px-3 py-2 text-sm"
-          style={{
-            backgroundColor: "var(--surface-alt)",
-            color: "var(--text-muted)",
-          }}
-          aria-disabled="true"
-        >
-          <span>Enable reminders</span>
-          <Toggle on={false} />
-        </div>
-      </SettingsCard>
+      <NotificationsCard />
 
       {/* Dev / reset ------------------------------------------------------- */}
       <SettingsCard
