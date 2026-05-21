@@ -49,3 +49,7 @@ habbit_tracker/
 /public/sw.js.map
 /public/swe-worker-*.js
 /public/workbox-*.js
+
+# lighthouse audit output — generated ad-hoc, not checked in
+/lighthouse-*.json
+/lighthouse-*.html

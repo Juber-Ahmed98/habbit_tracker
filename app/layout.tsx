@@ -24,7 +24,8 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  userScalable: false,
+  // Don't disable pinch-zoom — §12 a11y for low-vision users. Lighthouse
+  // flags `user-scalable=no` as a meta-viewport failure.
 };
 
 // Inline script: pick the persisted theme (or system) before paint so we

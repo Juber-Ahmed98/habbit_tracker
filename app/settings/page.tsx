@@ -197,8 +197,12 @@ export default function SettingsPage() {
         hint="Reminders arrive with cloud sync (step 11). Toggle is disabled until then."
       >
         <div
-          className="flex items-center justify-between rounded-xl px-3 py-2 text-sm opacity-60"
-          style={{ backgroundColor: "var(--surface-alt)", color: "var(--text)" }}
+          className="flex items-center justify-between rounded-xl px-3 py-2 text-sm"
+          style={{
+            backgroundColor: "var(--surface-alt)",
+            color: "var(--text-muted)",
+          }}
+          aria-disabled="true"
         >
           <span>Enable reminders</span>
           <Toggle on={false} />

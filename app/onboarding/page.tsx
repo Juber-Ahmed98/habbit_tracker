@@ -278,7 +278,7 @@ function StepWelcome({
           Enabled tabs
         </p>
         <div
-          className="flex items-center gap-3 rounded-card px-3 py-2.5 opacity-70"
+          className="flex items-center gap-3 rounded-card px-3 py-2.5"
           style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}
         >
           <LayoutDashboard size={18} aria-hidden />
@@ -566,8 +566,18 @@ function StepConnections() {
 // -- Step dots --------------------------------------------------------------
 
 function StepDots({ current }: { current: Step }) {
+  // role="progressbar" is the spec-correct way to expose stepwise progress —
+  // bare `aria-label` on a generic div is prohibited (axe `aria-prohibited-attr`).
   return (
-    <div className="flex items-center gap-1.5" aria-label={`Step ${current} of 4`}>
+    <div
+      className="flex items-center gap-1.5"
+      role="progressbar"
+      aria-label="Onboarding progress"
+      aria-valuenow={current}
+      aria-valuemin={1}
+      aria-valuemax={4}
+      aria-valuetext={`Step ${current} of 4`}
+    >
       {([1, 2, 3, 4] as const).map((n) => (
         <span
           key={n}
