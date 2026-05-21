@@ -160,10 +160,22 @@ export default function LiveWorkoutPage() {
       });
       setPhase("active");
     } catch (err) {
-      // User cancelling the picker also throws; treat as a soft reset.
       setPhase("setup");
       if (err instanceof Error && err.name === "NotFoundError") {
-        // No device chosen — silent return to setup.
+        // NotFoundError covers both user-cancel ("…cancelled…") and no
+        // device matching the HR filter. We treat anything that's not an
+        // explicit cancel as "no device" since that's the actionable case.
+        const msg = (err.message ?? "").toLowerCase();
+        if (msg.includes("cancel")) return;
+        setErrorText(
+          "Couldn't find a heart rate monitor. Check Location services are on, that Chrome has Location + Nearby-devices permission, and that Broadcast HR is the active screen on your watch when you tap Pair.",
+        );
+        return;
+      }
+      if (err instanceof Error && err.name === "SecurityError") {
+        setErrorText(
+          "Web Bluetooth blocked by the browser. This needs to run on HTTPS (or localhost) — not over a private IP.",
+        );
         return;
       }
       setErrorText(
