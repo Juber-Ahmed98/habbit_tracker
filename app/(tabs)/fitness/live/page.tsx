@@ -67,12 +67,14 @@ export default function LiveWorkoutPage() {
   const updateSettings = useSettingsStore((s) => s.update);
   const createBleSession = useFitnessStore((s) => s.createBleSession);
 
-  // BLE feature gate via useSyncExternalStore — returns false during SSR (no
-  // navigator) and the real value on the client, with no hydration mismatch.
+  // BLE feature gate via useSyncExternalStore. Server snapshot is `true`
+  // (optimistic) so capable browsers don't flash the unsupported view during
+  // hydration; only truly unsupported browsers see a brief flash to the
+  // unsupported view as the post-hydration snapshot settles.
   const supported = useSyncExternalStore(
     subscribeNoop,
     isHeartRateSupported,
-    returnFalse,
+    returnTrue,
   );
 
   const [phase, setPhase] = useState<Phase>("setup");
@@ -336,8 +338,8 @@ export default function LiveWorkoutPage() {
 function subscribeNoop(): () => void {
   return () => {};
 }
-function returnFalse(): false {
-  return false;
+function returnTrue(): true {
+  return true;
 }
 function returnNull(): null {
   return null;
