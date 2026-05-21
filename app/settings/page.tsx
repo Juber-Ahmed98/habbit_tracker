@@ -4,6 +4,7 @@ import { ChevronLeft, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Suspense, useState } from "react";
+import { FitSourceCard } from "@/components/fitness/FitSourceCard";
 import { StravaSourceCard } from "@/components/fitness/StravaSourceCard";
 import {
   type EnabledTabs,
@@ -186,6 +187,9 @@ export default function SettingsPage() {
       >
         <StravaSourceCard />
       </Suspense>
+
+      {/* FIT file import --------------------------------------------------- */}
+      <FitSourceCard />
 
       {/* Notifications ----------------------------------------------------- */}
       <SettingsCard
