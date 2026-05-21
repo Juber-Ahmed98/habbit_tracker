@@ -152,3 +152,62 @@ export type DailyPlan = {
   text: string;
   updatedAt: number;
 };
+
+// ---------------------------------------------------------------------------
+// Step 6 — Fitness tab. Two new shapes:
+//   * FitnessSession  — a discrete workout/activity record. Manual entry in
+//                       Step 6; later filled from Strava / BLE / FIT files.
+//   * DailyMetrics    — date-keyed counters for steps + hydration. These are
+//                       metrics not habits, so they live outside Habit rows.
+// ---------------------------------------------------------------------------
+
+export type FitnessSessionSource =
+  | "manual"   // Step 6 — user typed it in
+  | "strava"   // Step 7
+  | "ble"      // Step 8 (live HR monitor stop)
+  | "fit"      // Step 9
+  | "garmin";  // Step 11 (Garmin Health API)
+
+export type FitnessSessionType =
+  | "run"
+  | "ride"
+  | "gym"
+  | "walk"
+  | "swim"
+  | "other";
+
+export type FitnessSession = {
+  id: string;
+  source: FitnessSessionSource;
+  externalId?: string;             // dedupe key when source provides one
+  startedAt: number;               // epoch ms
+  durationSec: number;
+  type: FitnessSessionType;
+  name?: string;                   // optional human label, e.g. "Morning run"
+  distanceM?: number;
+  avgHr?: number;
+  maxHr?: number;
+  calories?: number;
+  notes?: string;                  // manual-entry free text
+  hrSeries?: Array<{ t: number; bpm: number }>; // populated by BLE/Strava/FIT
+  raw?: unknown;                   // original payload, debugging
+};
+
+// Helper local-date key for sessions when we group by day for UI.
+export function fitnessSessionDateKey(s: FitnessSession): string {
+  const d = new Date(s.startedAt);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+// Date-keyed counters. Bespoke widgets in the Fitness tab (StepsCard,
+// HydrationCard) read/write directly via the fitness store. Streak machinery
+// deliberately doesn't touch this — they're metrics, not habits.
+export type DailyMetrics = {
+  date: string;          // 'YYYY-MM-DD' local — primary key
+  stepsCount?: number;   // absolute total for the day
+  hydrationMl?: number;  // accumulated ml drunk
+  updatedAt: number;
+};

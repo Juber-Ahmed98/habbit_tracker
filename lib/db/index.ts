@@ -4,8 +4,10 @@ import {
   DEFAULT_ENABLED_TABS,
   DEFAULT_SETTINGS,
   type Completion,
+  type DailyMetrics,
   type DailyPlan,
   type DeenState,
+  type FitnessSession,
   type Habit,
   type MealLog,
   type Settings,
@@ -23,6 +25,9 @@ class HabitTrackerDB extends Dexie {
   sleepLogs!: Table<SleepLog, string>;
   mealLogs!: Table<MealLog, string>;
   dailyPlans!: Table<DailyPlan, string>;
+  // Step 6 additions
+  fitnessSessions!: Table<FitnessSession, string>;
+  dailyMetrics!: Table<DailyMetrics, string>;
 
   constructor() {
     super("habit-tracker");
@@ -63,6 +68,23 @@ class HabitTrackerDB extends Dexie {
       sleepLogs: "date",
       mealLogs: "date",
       dailyPlans: "date",
+    });
+
+    // v4 — Step 6 adds Fitness session log + per-day metrics.
+    // FitnessSession indexed by `startedAt` (date sort + range queries for
+    // "last 7 days") and `[source+externalId]` so future Strava sync (Step 7)
+    // can dedupe in one round trip.
+    this.version(4).stores({
+      habits: "id, tab, order, archivedAt, category",
+      completions: "id, habitId, date, [habitId+date]",
+      streakSnapshots: "habitId",
+      settings: "id",
+      deenState: "id",
+      sleepLogs: "date",
+      mealLogs: "date",
+      dailyPlans: "date",
+      fitnessSessions: "id, startedAt, [source+externalId]",
+      dailyMetrics: "date",
     });
   }
 }

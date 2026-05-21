@@ -22,6 +22,9 @@ export type CatalogueRow = {
 };
 
 export const CATALOGUE: CatalogueRow[] = [
+  // Fitness — Workout
+  { key: "fitness-gym", tab: "fitness", category: "fitness-workout", name: "Gym / Workout", icon: "dumbbell" },
+
   // Work — Focus
   { key: "work-pomodoro", tab: "work", category: "work-focus", name: "Pomodoro", icon: "timer" },
   { key: "work-skill", tab: "work", category: "work-focus", name: "Skill building", icon: "bookOpen" },
@@ -78,4 +81,22 @@ export async function ensureCatalogueSeed(): Promise<void> {
     await seedCatalogueRows(CATALOGUE);
     await db.settings.put({ ...settings, catalogueSeeded: true });
   });
+}
+
+// Step 6 one-off: existing installs already have `catalogueSeeded: true` from
+// Step 3/5, so the Gym row added to CATALOGUE this step never reaches them.
+// Backfill it here — only when there are zero fitness-tab habits, so users
+// who deliberately deleted/customised it aren't re-seeded.
+//
+// Safe to call on every app open: if catalogue isn't seeded yet, defer to
+// onboarding; if any fitness habit exists, do nothing.
+export async function ensureFitnessSeed(): Promise<void> {
+  const settings = await ensureSettingsSeed();
+  if (!settings.catalogueSeeded) return; // onboarding will handle it
+  const db = getDb();
+  const existing = await db.habits.where("tab").equals("fitness").count();
+  if (existing > 0) return;
+  const gym = CATALOGUE.find((r) => r.key === "fitness-gym");
+  if (!gym) return;
+  await seedCatalogueRows([gym]);
 }
